@@ -72,14 +72,14 @@ export default function AdminPage() {
             </div>
           </a>
 
-          <div className="rounded-lg bg-white p-6 shadow">
+          <a href="/admin/tables" className="rounded-lg bg-white p-6 shadow hover:shadow-lg transition">
             <div className="mb-2 text-3xl">🪑</div>
             <h3 className="mb-1 text-lg font-semibold">Masalar</h3>
             <p className="text-sm text-gray-600">Masa ve QR kod yönetimi</p>
-            <button className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
+            <div className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
               Masalara Git →
-            </button>
-          </div>
+            </div>
+          </a>
 
           <div className="rounded-lg bg-white p-6 shadow">
             <div className="mb-2 text-3xl">📋</div>

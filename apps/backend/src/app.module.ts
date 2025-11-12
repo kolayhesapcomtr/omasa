@@ -7,6 +7,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BranchModule } from './modules/branch/branch.module';
 import { MenuModule } from './modules/menu/menu.module';
+import { TableModule } from './modules/table/table.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { MenuModule } from './modules/menu/menu.module';
     AuthModule,
     BranchModule,
     MenuModule,
+    TableModule,
   ],
   controllers: [AppController],
   providers: [AppService],
