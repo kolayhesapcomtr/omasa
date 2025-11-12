@@ -7,6 +7,7 @@ import apiClient from '@/lib/api-client';
 import { useCartStore } from '@/store/cart-store';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useCreateOrder } from '@/hooks/use-order';
 
 interface Product {
   id: string;
@@ -48,8 +49,10 @@ export default function QRMenuPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCart, setShowCart] = useState(false);
 
-  const { items, addItem, removeItem, updateQuantity, getTotal, getItemCount, setTable } =
+  const { items, addItem, removeItem, updateQuantity, getTotal, getItemCount, setTable, clearCart, tableId } =
     useCartStore();
+
+  const createOrder = useCreateOrder();
 
   // Get table info by QR code
   const { data: table, isLoading: tableLoading } = useQuery({
@@ -96,6 +99,35 @@ export default function QRMenuPage() {
     });
     toast.success(`${product.name} sepete eklendi`);
     setSelectedProduct(null);
+  };
+
+  const handleSubmitOrder = () => {
+    if (!tableId || items.length === 0) {
+      toast.error('Sepetiniz boş');
+      return;
+    }
+
+    const orderItems = items.map((item) => ({
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+      unitPrice: item.price,
+      notes: item.notes,
+    }));
+
+    createOrder.mutate(
+      {
+        tableId,
+        type: 'QR',
+        items: orderItems,
+      },
+      {
+        onSuccess: () => {
+          clearCart();
+          setShowCart(false);
+        },
+      },
+    );
   };
 
   if (tableLoading || menusLoading) {
@@ -409,12 +441,11 @@ export default function QRMenuPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => {
-                      toast.info('Sipariş sistemi yakında aktif olacak!');
-                    }}
-                    className="w-full rounded-lg bg-green-600 py-3 font-semibold text-white hover:bg-green-700"
+                    onClick={handleSubmitOrder}
+                    disabled={createOrder.isPending}
+                    className="w-full rounded-lg bg-green-600 py-3 font-semibold text-white hover:bg-green-700 disabled:bg-green-300"
                   >
-                    Siparişi Gönder
+                    {createOrder.isPending ? 'Gönderiliyor...' : 'Siparişi Gönder'}
                   </button>
                 </div>
               )}

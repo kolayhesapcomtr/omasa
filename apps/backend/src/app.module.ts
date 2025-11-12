@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BranchModule } from './modules/branch/branch.module';
 import { MenuModule } from './modules/menu/menu.module';
 import { TableModule } from './modules/table/table.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { TableModule } from './modules/table/table.module';
     BranchModule,
     MenuModule,
     TableModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
