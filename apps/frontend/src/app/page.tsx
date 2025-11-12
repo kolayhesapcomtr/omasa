@@ -10,18 +10,21 @@ export default function HomePage() {
         </p>
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
           <a
-            href="/admin"
+            href="/login"
             className="rounded-lg bg-blue-600 px-8 py-3 font-semibold text-white transition hover:bg-blue-700"
           >
-            Admin Panel
+            Giriş Yap
           </a>
           <a
-            href="/menu"
-            className="rounded-lg border-2 border-blue-600 px-8 py-3 font-semibold text-blue-600 transition hover:bg-blue-50"
+            href="/register"
+            className="rounded-lg border-2 border-blue-600 bg-white px-8 py-3 font-semibold text-blue-600 transition hover:bg-blue-50"
           >
-            QR Menü Demo
+            Ücretsiz Başla
           </a>
         </div>
+        <p className="mt-4 text-sm text-gray-500">
+          30 gün ücretsiz deneme · Kredi kartı gerekmez
+        </p>
         <div className="mt-12 grid gap-6 sm:grid-cols-3">
           <div className="rounded-lg bg-white p-6 shadow-md">
             <div className="mb-2 text-4xl">📱</div>
