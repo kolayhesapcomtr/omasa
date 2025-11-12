@@ -104,3 +104,17 @@ export function useTableOrders(tableId: string) {
     enabled: !!tableId,
   });
 }
+
+export function useKitchenOrders(branchId?: string) {
+  return useQuery({
+    queryKey: ['orders', 'kitchen', branchId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (branchId) params.append('branchId', branchId);
+
+      const response = await apiClient.get(`/orders/kitchen?${params.toString()}`);
+      return response.data;
+    },
+    refetchInterval: 5000, // Auto-refresh every 5 seconds for kitchen
+  });
+}
