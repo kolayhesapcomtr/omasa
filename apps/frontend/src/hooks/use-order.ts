@@ -37,6 +37,25 @@ export function useCreateOrder() {
   });
 }
 
+export function useCreateWaiterOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateOrderData) => {
+      const response = await apiClient.post('/orders/waiter', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+      toast.success('Sipariş başarıyla oluşturuldu! ✅');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Sipariş gönderilemedi');
+    },
+  });
+}
+
 export function useOrders(branchId?: string, status?: string) {
   return useQuery({
     queryKey: ['orders', branchId, status],
