@@ -79,3 +79,28 @@ export function useUpdateOrderStatus() {
     },
   });
 }
+
+export function useActiveOrders(branchId?: string) {
+  return useQuery({
+    queryKey: ['orders', 'active', branchId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (branchId) params.append('branchId', branchId);
+
+      const response = await apiClient.get(`/orders/active?${params.toString()}`);
+      return response.data;
+    },
+    refetchInterval: 10000, // Auto-refresh every 10 seconds
+  });
+}
+
+export function useTableOrders(tableId: string) {
+  return useQuery({
+    queryKey: ['orders', 'table', tableId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/orders/table/${tableId}`);
+      return response.data;
+    },
+    enabled: !!tableId,
+  });
+}

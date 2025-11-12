@@ -81,14 +81,14 @@ export default function AdminPage() {
             </div>
           </a>
 
-          <div className="rounded-lg bg-white p-6 shadow">
+          <a href="/admin/orders" className="rounded-lg bg-white p-6 shadow hover:shadow-lg transition">
             <div className="mb-2 text-3xl">📋</div>
             <h3 className="mb-1 text-lg font-semibold">Siparişler</h3>
             <p className="text-sm text-gray-600">Aktif siparişleri görüntüle</p>
-            <button className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
+            <div className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
               Siparişlere Git →
-            </button>
-          </div>
+            </div>
+          </a>
 
           <div className="rounded-lg bg-white p-6 shadow">
             <div className="mb-2 text-3xl">📊</div>
