@@ -1,0 +1,452 @@
+// Omasa - QR Menu and Restaurant Management System
+// Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// TENANT & USER MANAGEMENT
+// ============================================
+
+enum PlanType {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  WAITER
+  CASHIER
+  KITCHEN
+}
+
+model Tenant {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  logo          String?
+  email         String
+  phone         String?
+  plan          PlanType      @default(FREE)
+  status        TenantStatus  @default(TRIAL)
+  trialEndsAt   DateTime?
+
+  // Relations
+  branches      Branch[]
+  users         User[]
+  subscriptions Subscription[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([status])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  avatar        String?
+  role          UserRole
+  isActive      Boolean   @default(true)
+
+  // Multi-tenant
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Relations
+  orders        Order[]
+  sessions      Session[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+model Session {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token         String    @unique
+  expiresAt     DateTime
+
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Subscription {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  plan          PlanType
+  status        String    @default("active") // active, cancelled, past_due
+  amount        Decimal   @db.Decimal(10, 2)
+  currency      String    @default("TRY")
+
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  cancelAt            DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// ============================================
+// BRANCH MANAGEMENT
+// ============================================
+
+model Branch {
+  id            String    @id @default(cuid())
+  name          String
+  address       String
+  city          String
+  phone         String
+  email         String?
+  isActive      Boolean   @default(true)
+
+  // Multi-tenant
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Relations
+  tables        Table[]
+  menus         Menu[]
+  orders        Order[]
+
+  // Settings
+  openingTime   String?   // HH:mm format
+  closingTime   String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// ============================================
+// MENU MANAGEMENT
+// ============================================
+
+model Menu {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  isActive      Boolean   @default(true)
+
+  branchId      String
+  branch        Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  categories    Category[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([branchId])
+}
+
+model Category {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  image         String?
+  order         Int       @default(0)
+  isActive      Boolean   @default(true)
+
+  menuId        String
+  menu          Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  products      Product[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([menuId])
+  @@index([order])
+}
+
+model Product {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  image         String?
+  price         Decimal   @db.Decimal(10, 2)
+  isActive      Boolean   @default(true)
+  isAvailable   Boolean   @default(true)
+  order         Int       @default(0)
+
+  // Allergens, tags etc
+  allergens     String[]  // ["gluten", "dairy", "nuts"]
+  tags          String[]  // ["vegan", "spicy", "popular"]
+
+  categoryId    String
+  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  variants      ProductVariant[]
+  orderItems    OrderItem[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model ProductVariant {
+  id            String    @id @default(cuid())
+  name          String    // "Küçük", "Orta", "Büyük"
+  price         Decimal   @db.Decimal(10, 2)
+  isActive      Boolean   @default(true)
+  order         Int       @default(0)
+
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([productId])
+}
+
+// ============================================
+// TABLE & QR MANAGEMENT
+// ============================================
+
+enum TableStatus {
+  EMPTY
+  OCCUPIED
+  RESERVED
+  CLEANING
+}
+
+model Table {
+  id            String      @id @default(cuid())
+  number        String
+  name          String?     // "Bahçe Masa 1"
+  qrCode        String      @unique // unique hash for QR
+  capacity      Int         @default(4)
+  status        TableStatus @default(EMPTY)
+  isActive      Boolean     @default(true)
+
+  // Location/Area
+  area          String?     // "Bahçe", "İç Salon", "Teras"
+
+  branchId      String
+  branch        Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  orders        Order[]
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([branchId, number])
+  @@index([branchId])
+  @@index([qrCode])
+  @@index([status])
+}
+
+// ============================================
+// ORDER MANAGEMENT
+// ============================================
+
+enum OrderStatus {
+  PENDING       // Sipariş alındı, hazırlanmayı bekliyor
+  CONFIRMED     // Onaylandı
+  PREPARING     // Hazırlanıyor
+  READY         // Hazır
+  SERVED        // Teslim edildi
+  CANCELLED     // İptal edildi
+  COMPLETED     // Tamamlandı (ödeme yapıldı)
+}
+
+enum OrderType {
+  QR          // Müşteri QR'dan sipariş verdi
+  WAITER      // Garson sipariş aldı
+  TAKEAWAY    // Paket sipariş
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique // OMX-20240101-0001
+  type            OrderType
+  status          OrderStatus @default(PENDING)
+
+  // Customer info (optional for QR orders)
+  customerName    String?
+  customerPhone   String?
+  customerNote    String?
+
+  tableId         String
+  table           Table       @relation(fields: [tableId], references: [id])
+
+  branchId        String
+  branch          Branch      @relation(fields: [branchId], references: [id])
+
+  // Waiter who took/served the order
+  waiterId        String?
+  waiter          User?       @relation(fields: [waiterId], references: [id])
+
+  items           OrderItem[]
+  payment         Payment?
+
+  subtotal        Decimal     @db.Decimal(10, 2)
+  tax             Decimal     @db.Decimal(10, 2) @default(0)
+  discount        Decimal     @db.Decimal(10, 2) @default(0)
+  total           Decimal     @db.Decimal(10, 2)
+
+  // Timestamps
+  confirmedAt     DateTime?
+  preparingAt     DateTime?
+  readyAt         DateTime?
+  servedAt        DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([tableId])
+  @@index([branchId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+}
+
+enum OrderItemStatus {
+  PENDING
+  PREPARING
+  READY
+  SERVED
+  CANCELLED
+}
+
+model OrderItem {
+  id            String          @id @default(cuid())
+
+  orderId       String
+  order         Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId     String
+  product       Product         @relation(fields: [productId], references: [id])
+
+  variantId     String?
+  variantName   String?         // Store variant name for history
+
+  quantity      Int
+  unitPrice     Decimal         @db.Decimal(10, 2)
+  total         Decimal         @db.Decimal(10, 2)
+
+  notes         String?         // "Az şekerli", "Soğuk olsun"
+  status        OrderItemStatus @default(PENDING)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ============================================
+// PAYMENT MANAGEMENT
+// ============================================
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  ONLINE        // iyzico etc
+  MOBILE        // Apple Pay, Google Pay
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+
+  orderId         String        @unique
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  amount          Decimal       @db.Decimal(10, 2)
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+
+  // For online payments
+  transactionId   String?       @unique
+  gatewayResponse Json?
+
+  // Tips
+  tipAmount       Decimal       @db.Decimal(10, 2) @default(0)
+
+  // Refund
+  refundAmount    Decimal       @db.Decimal(10, 2) @default(0)
+  refundReason    String?
+  refundedAt      DateTime?
+
+  paidAt          DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([method])
+  @@index([createdAt])
+}
+
+// ============================================
+// INVOICE MANAGEMENT
+// ============================================
+
+model Invoice {
+  id              String    @id @default(cuid())
+  invoiceNumber   String    @unique
+
+  // Customer details
+  customerName    String?
+  customerTaxId   String?   // TC Kimlik or Vergi No
+  customerAddress String?
+
+  amount          Decimal   @db.Decimal(10, 2)
+  taxAmount       Decimal   @db.Decimal(10, 2)
+  total           Decimal   @db.Decimal(10, 2)
+
+  pdfUrl          String?
+
+  issuedAt        DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+
+  @@index([invoiceNumber])
+}
