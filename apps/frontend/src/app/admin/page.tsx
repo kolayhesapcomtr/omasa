@@ -63,14 +63,14 @@ export default function AdminPage() {
 
         {/* Dashboard Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg bg-white p-6 shadow">
+          <a href="/admin/menu" className="rounded-lg bg-white p-6 shadow hover:shadow-lg transition">
             <div className="mb-2 text-3xl">📱</div>
             <h3 className="mb-1 text-lg font-semibold">QR Menü</h3>
             <p className="text-sm text-gray-600">Menülerinizi yönetin</p>
-            <button className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
+            <div className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
               Menülere Git →
-            </button>
-          </div>
+            </div>
+          </a>
 
           <div className="rounded-lg bg-white p-6 shadow">
             <div className="mb-2 text-3xl">🪑</div>
