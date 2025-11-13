@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useKitchenOrders, useUpdateOrderStatus } from '@/hooks/use-order';
 import { useBranches } from '@/hooks/use-branch';
+import { useSocket } from '@/contexts/socket-context';
+import { useQueryClient } from '@tanstack/react-query';
 
 type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY';
 
@@ -62,6 +64,32 @@ export default function KitchenPage() {
   const { data: branches } = useBranches();
   const { data: orders, isLoading } = useKitchenOrders(selectedBranch || undefined);
   const updateStatus = useUpdateOrderStatus();
+
+  const { socket, isConnected } = useSocket();
+  const queryClient = useQueryClient();
+
+  // Listen to real-time order events
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNewOrder = () => {
+      // Refetch kitchen orders
+      queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+    };
+
+    const handleOrderStatusChange = () => {
+      // Refetch kitchen orders
+      queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+    };
+
+    socket.on('order:new', handleNewOrder);
+    socket.on('order:status-changed', handleOrderStatusChange);
+
+    return () => {
+      socket.off('order:new', handleNewOrder);
+      socket.off('order:status-changed', handleOrderStatusChange);
+    };
+  }, [socket, isConnected, queryClient]);
 
   // Play sound on new order
   useEffect(() => {

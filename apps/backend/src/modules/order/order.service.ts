@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto/order.dto';
 import { OrderStatus, OrderType } from '@prisma/client';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private notificationsGateway: NotificationsGateway,
+  ) {}
 
   private generateOrderNumber(): string {
     const now = new Date();
@@ -158,6 +163,9 @@ export class OrderService {
       data: { status: 'OCCUPIED' },
     });
 
+    // Notify about new order
+    this.notificationsGateway.notifyNewOrder(tenantId, table.branchId, order);
+
     return order;
   }
 
@@ -286,7 +294,7 @@ export class OrderService {
         break;
     }
 
-    return this.prisma.order.update({
+    const updatedOrder = await this.prisma.order.update({
       where: { id },
       data: updateData,
       include: {
@@ -296,8 +304,20 @@ export class OrderService {
           },
         },
         table: true,
+        waiter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
     });
+
+    // Notify about order status change
+    this.notificationsGateway.notifyOrderStatusChange(tenantId, updatedOrder);
+
+    return updatedOrder;
   }
 
   async getActiveOrders(tenantId: string, branchId?: string) {

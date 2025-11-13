@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTables } from '@/hooks/use-table';
 import { useBranches } from '@/hooks/use-branch';
 import { useTableBill, useCreatePayment } from '@/hooks/use-payment';
+import { useSocket } from '@/contexts/socket-context';
+import { useQueryClient } from '@tanstack/react-query';
 
 type PaymentMethod = 'CASH' | 'CREDIT_CARD' | 'ONLINE';
 
@@ -19,6 +21,32 @@ export default function CashierPage() {
   const { data: tables } = useTables();
   const { data: bill, isLoading: billLoading } = useTableBill(selectedTable);
   const createPayment = useCreatePayment();
+
+  const { socket, isConnected } = useSocket();
+  const queryClient = useQueryClient();
+
+  // Listen to real-time payment events
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handlePaymentCompleted = () => {
+      // Refetch tables
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+    };
+
+    const handleOrderStatusChange = () => {
+      // Refetch tables in case order status affects display
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+    };
+
+    socket.on('payment:completed', handlePaymentCompleted);
+    socket.on('order:status-changed', handleOrderStatusChange);
+
+    return () => {
+      socket.off('payment:completed', handlePaymentCompleted);
+      socket.off('order:status-changed', handleOrderStatusChange);
+    };
+  }, [socket, isConnected, queryClient]);
 
   // Filter occupied tables by branch
   const occupiedTables = useMemo(() => {

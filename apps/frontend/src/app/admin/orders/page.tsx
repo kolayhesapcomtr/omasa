@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOrders, useUpdateOrderStatus } from '@/hooks/use-order';
 import { useBranches } from '@/hooks/use-branch';
+import { useSocket } from '@/contexts/socket-context';
+import { useQueryClient } from '@tanstack/react-query';
 
 type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'CANCELLED' | 'COMPLETED';
 
@@ -85,6 +87,32 @@ export default function OrdersPage() {
     selectedStatus !== 'ALL' ? selectedStatus : undefined
   );
   const updateStatus = useUpdateOrderStatus();
+
+  const { socket, isConnected } = useSocket();
+  const queryClient = useQueryClient();
+
+  // Listen to real-time order events
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNewOrder = () => {
+      // Refetch orders
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    };
+
+    const handleOrderStatusChange = () => {
+      // Refetch orders
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    };
+
+    socket.on('order:new', handleNewOrder);
+    socket.on('order:status-changed', handleOrderStatusChange);
+
+    return () => {
+      socket.off('order:new', handleNewOrder);
+      socket.off('order:status-changed', handleOrderStatusChange);
+    };
+  }, [socket, isConnected, queryClient]);
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
     updateStatus.mutate({ id: orderId, status: newStatus });

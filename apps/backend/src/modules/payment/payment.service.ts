@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreatePaymentDto } from './dto/payment.dto';
 import { PaymentStatus, OrderStatus } from '@prisma/client';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class PaymentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private notificationsGateway: NotificationsGateway,
+  ) {}
 
   async getTableBill(tableId: string, tenantId: string) {
     // Get table with orders
@@ -169,6 +174,16 @@ export class PaymentService {
         totalAmount: finalAmount,
         tipAmount: tip,
       };
+    });
+
+    // Notify about payment completion
+    this.notificationsGateway.notifyPaymentCompleted(tenantId, {
+      id: result.invoice.id,
+      invoiceNumber: result.invoice.invoiceNumber,
+      totalAmount: result.totalAmount,
+      tipAmount: result.tipAmount,
+      method,
+      tableId,
     });
 
     return result;
