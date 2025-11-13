@@ -205,17 +205,26 @@ model Product {
   allergens     String[]  // ["gluten", "dairy", "nuts"]
   tags          String[]  // ["vegan", "spicy", "popular"]
 
+  // Stock Management
+  trackStock    Boolean   @default(false) // Stok takibi yapılsın mı?
+  stockQuantity Decimal   @db.Decimal(10, 2) @default(0) // Mevcut stok
+  minStockLevel Decimal   @db.Decimal(10, 2) @default(0) // Minimum stok seviyesi (uyarı için)
+  stockUnit     String?   // "adet", "kg", "litre", "porsiyon"
+
   categoryId    String
   category      Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   variants      ProductVariant[]
   orderItems    OrderItem[]
+  stockMovements StockMovement[]
+  stockAlerts   StockAlert[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@index([categoryId])
   @@index([isActive])
+  @@index([trackStock])
 }
 
 model ProductVariant {
@@ -449,4 +458,66 @@ model Invoice {
   createdAt       DateTime  @default(now())
 
   @@index([invoiceNumber])
+}
+
+// ============================================
+// STOCK MANAGEMENT
+// ============================================
+
+enum StockMovementType {
+  IN          // Stok girişi
+  OUT         // Stok çıkışı
+  ADJUSTMENT  // Düzeltme (sayım sonrası)
+  WASTE       // Fire/Kayıp
+  RETURN      // İade
+}
+
+model StockMovement {
+  id              String            @id @default(cuid())
+
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type            StockMovementType
+  quantity        Decimal           @db.Decimal(10, 2)
+  previousStock   Decimal           @db.Decimal(10, 2) // İşlem öncesi stok
+  newStock        Decimal           @db.Decimal(10, 2) // İşlem sonrası stok
+
+  // Reference
+  orderId         String?           // Eğer sipariş nedeniyle stok düştüyse
+  reference       String?           // Fatura no, irsaliye no vb.
+
+  notes           String?           // Açıklama
+
+  // User who performed the action
+  userId          String?
+  performedBy     String?           // User name for historical reference
+
+  createdAt       DateTime          @default(now())
+
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([orderId])
+}
+
+// Stok uyarıları için otomatik notification
+model StockAlert {
+  id              String    @id @default(cuid())
+
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  alertType       String    // "LOW_STOCK", "OUT_OF_STOCK"
+  message         String
+  isRead          Boolean   @default(false)
+  isResolved      Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  @@index([productId])
+  @@index([isRead])
+  @@index([isResolved])
+  @@index([createdAt])
 }

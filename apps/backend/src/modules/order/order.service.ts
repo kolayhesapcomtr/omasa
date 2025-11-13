@@ -3,6 +3,7 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto/order.dto';
 import { OrderStatus, OrderType } from '@prisma/client';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { StockService } from '../stock/stock.service';
 
 @Injectable()
 export class OrderService {
@@ -10,6 +11,7 @@ export class OrderService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => NotificationsGateway))
     private notificationsGateway: NotificationsGateway,
+    private stockService: StockService,
   ) {}
 
   private generateOrderNumber(): string {
@@ -163,6 +165,21 @@ export class OrderService {
       data: { status: 'OCCUPIED' },
     });
 
+    // Deduct stock for ordered items (automatic stock management)
+    try {
+      await this.stockService.deductStockForOrder(
+        order.id,
+        order.items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      );
+    } catch (error) {
+      console.error('Stock deduction failed:', error);
+      // Don't fail the order if stock tracking fails
+      // Log for monitoring
+    }
+
     // Notify about new order
     this.notificationsGateway.notifyNewOrder(tenantId, table.branchId, order);
 
@@ -313,6 +330,22 @@ export class OrderService {
         },
       },
     });
+
+    // Return stock if order is cancelled
+    if (updateStatusDto.status === OrderStatus.CANCELLED) {
+      try {
+        await this.stockService.returnStockForCancelledOrder(
+          updatedOrder.id,
+          updatedOrder.items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        );
+      } catch (error) {
+        console.error('Stock return failed:', error);
+        // Don't fail the status update if stock return fails
+      }
+    }
 
     // Notify about order status change
     this.notificationsGateway.notifyOrderStatusChange(tenantId, updatedOrder);
