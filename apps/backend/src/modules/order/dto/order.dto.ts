@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, IsEnum, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, IsEnum, Min, IsEmail, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderType, OrderStatus } from '@prisma/client';
 
@@ -30,9 +30,10 @@ export class CreateOrderItemDto {
 }
 
 export class CreateOrderDto {
-  @ApiProperty({ example: 'table-id' })
+  @ApiPropertyOptional({ example: 'table-id', description: 'Required for dine-in orders, optional for takeaway/delivery' })
   @IsString()
-  tableId: string;
+  @IsOptional()
+  tableId?: string;
 
   @ApiProperty({ enum: OrderType, example: OrderType.QR })
   @IsEnum(OrderType)
@@ -44,6 +45,7 @@ export class CreateOrderDto {
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
 
+  // Customer info (required for takeaway/delivery)
   @ApiPropertyOptional({ example: 'Mehmet Yılmaz' })
   @IsString()
   @IsOptional()
@@ -54,10 +56,62 @@ export class CreateOrderDto {
   @IsOptional()
   customerPhone?: string;
 
+  @ApiPropertyOptional({ example: 'customer@example.com' })
+  @IsEmail()
+  @IsOptional()
+  customerEmail?: string;
+
   @ApiPropertyOptional({ example: 'Hızlı olsun lütfen' })
   @IsString()
   @IsOptional()
   customerNote?: string;
+
+  // Delivery info (for DELIVERY type)
+  @ApiPropertyOptional({ example: 'Atatürk Cad. No:123 Daire:4' })
+  @IsString()
+  @IsOptional()
+  deliveryAddress?: string;
+
+  @ApiPropertyOptional({ example: 'İstanbul' })
+  @IsString()
+  @IsOptional()
+  deliveryCity?: string;
+
+  @ApiPropertyOptional({ example: 'Kadıköy' })
+  @IsString()
+  @IsOptional()
+  deliveryDistrict?: string;
+
+  @ApiPropertyOptional({ example: '34710' })
+  @IsString()
+  @IsOptional()
+  deliveryZipCode?: string;
+
+  @ApiPropertyOptional({ example: 'Kapı kodu: 1234' })
+  @IsString()
+  @IsOptional()
+  deliveryNotes?: string;
+
+  // Scheduling
+  @ApiPropertyOptional({ example: '2024-01-15T18:00:00Z', description: 'Scheduled time for the order' })
+  @IsDateString()
+  @IsOptional()
+  scheduledFor?: string;
+
+  @ApiPropertyOptional({ example: 30, description: 'Estimated preparation time in minutes' })
+  @IsNumber()
+  @IsOptional()
+  estimatedTime?: number;
+
+  @ApiPropertyOptional({ example: 15.00, description: 'Delivery fee' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  deliveryFee?: number;
+
+  @ApiProperty({ example: 'branch-id' })
+  @IsString()
+  branchId: string;
 }
 
 export class UpdateOrderStatusDto {

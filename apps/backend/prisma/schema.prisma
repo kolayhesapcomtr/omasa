@@ -301,7 +301,9 @@ enum OrderStatus {
 enum OrderType {
   QR          // Müşteri QR'dan sipariş verdi
   WAITER      // Garson sipariş aldı
-  TAKEAWAY    // Paket sipariş
+  TAKEAWAY    // Gel-al paket sipariş
+  DELIVERY    // Teslimat (eve/ofise)
+  PHONE       // Telefon siparişi
 }
 
 model Order {
@@ -310,13 +312,26 @@ model Order {
   type            OrderType
   status          OrderStatus @default(PENDING)
 
-  // Customer info (optional for QR orders)
+  // Customer info (required for takeaway/delivery)
   customerName    String?
   customerPhone   String?
+  customerEmail   String?
   customerNote    String?
 
-  tableId         String
-  table           Table       @relation(fields: [tableId], references: [id])
+  // Delivery info (for DELIVERY type)
+  deliveryAddress String?
+  deliveryCity    String?
+  deliveryDistrict String?
+  deliveryZipCode String?
+  deliveryNotes   String?
+
+  // Takeaway/Delivery specific
+  scheduledFor    DateTime?   // Zamanlanmış sipariş (örn: 18:00'de hazır olsun)
+  estimatedTime   Int?        // Tahmini hazırlık süresi (dakika)
+  deliveryFee     Decimal?    @db.Decimal(10, 2) @default(0)
+
+  tableId         String?
+  table           Table?      @relation(fields: [tableId], references: [id])
 
   branchId        String
   branch          Branch      @relation(fields: [branchId], references: [id])

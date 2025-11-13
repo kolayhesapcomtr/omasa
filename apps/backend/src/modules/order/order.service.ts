@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto/order.dto';
-import { OrderStatus, OrderType } from '@prisma/client';
+import { OrderStatus, OrderType, OrderItemStatus } from '@prisma/client';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { StockService } from '../stock/stock.service';
 
@@ -27,23 +27,63 @@ export class OrderService {
   }
 
   async createOrder(createOrderDto: CreateOrderDto, tenantId: string, userId?: string) {
-    // Verify table belongs to tenant
-    const table = await this.prisma.table.findFirst({
+    // Validate based on order type
+    const isTakeawayOrDelivery = (
+      createOrderDto.type === OrderType.TAKEAWAY ||
+      createOrderDto.type === OrderType.DELIVERY ||
+      createOrderDto.type === OrderType.PHONE
+    );
+
+    // For takeaway/delivery, validate customer info
+    if (isTakeawayOrDelivery) {
+      if (!createOrderDto.customerName) {
+        throw new BadRequestException('Customer name is required for takeaway/delivery orders');
+      }
+      if (!createOrderDto.customerPhone) {
+        throw new BadRequestException('Customer phone is required for takeaway/delivery orders');
+      }
+      if (createOrderDto.type === OrderType.DELIVERY && !createOrderDto.deliveryAddress) {
+        throw new BadRequestException('Delivery address is required for delivery orders');
+      }
+    }
+
+    // For dine-in orders, table is required
+    if (!isTakeawayOrDelivery && !createOrderDto.tableId) {
+      throw new BadRequestException('Table is required for dine-in orders');
+    }
+
+    // Verify branch exists and belongs to tenant
+    const branch = await this.prisma.branch.findFirst({
       where: {
-        id: createOrderDto.tableId,
-        branch: { tenantId },
-      },
-      include: {
-        branch: true,
+        id: createOrderDto.branchId,
+        tenantId,
       },
     });
 
-    if (!table) {
-      throw new NotFoundException('Table not found');
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
     }
 
-    if (!table.isActive) {
-      throw new BadRequestException('Table is not active');
+    // Verify table if provided
+    let table: any = null;
+    if (createOrderDto.tableId) {
+      table = await this.prisma.table.findFirst({
+        where: {
+          id: createOrderDto.tableId,
+          branch: { tenantId },
+        },
+        include: {
+          branch: true,
+        },
+      });
+
+      if (!table) {
+        throw new NotFoundException('Table not found');
+      }
+
+      if (!table.isActive) {
+        throw new BadRequestException('Table is not active');
+      }
     }
 
     // Validate products and calculate totals
@@ -54,7 +94,7 @@ export class OrderService {
             id: item.productId,
             category: {
               menu: {
-                branchId: table.branchId,
+                branchId: createOrderDto.branchId,
               },
             },
           },
@@ -86,21 +126,24 @@ export class OrderService {
         }
 
         return {
-          productId: item.productId,
+          product: {
+            connect: { id: item.productId },
+          },
           variantId: item.variantId,
           variantName,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.unitPrice * item.quantity,
           notes: item.notes,
-          status: 'PENDING',
+          status: OrderItemStatus.PENDING,
         };
       }),
     );
 
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
     const tax = subtotal * 0.1; // 10% tax
-    const total = subtotal + tax;
+    const deliveryFee = createOrderDto.deliveryFee || 0;
+    const total = subtotal + tax + deliveryFee;
 
     // Generate unique order number
     let orderNumber = this.generateOrderNumber();
@@ -117,11 +160,24 @@ export class OrderService {
         orderNumber,
         type: createOrderDto.type,
         tableId: createOrderDto.tableId,
-        branchId: table.branchId,
+        branchId: createOrderDto.branchId,
         waiterId: userId,
+        // Customer info
         customerName: createOrderDto.customerName,
         customerPhone: createOrderDto.customerPhone,
+        customerEmail: createOrderDto.customerEmail,
         customerNote: createOrderDto.customerNote,
+        // Delivery info
+        deliveryAddress: createOrderDto.deliveryAddress,
+        deliveryCity: createOrderDto.deliveryCity,
+        deliveryDistrict: createOrderDto.deliveryDistrict,
+        deliveryZipCode: createOrderDto.deliveryZipCode,
+        deliveryNotes: createOrderDto.deliveryNotes,
+        // Scheduling
+        scheduledFor: createOrderDto.scheduledFor ? new Date(createOrderDto.scheduledFor) : null,
+        estimatedTime: createOrderDto.estimatedTime,
+        deliveryFee: deliveryFee,
+        // Totals
         subtotal,
         tax,
         total,
@@ -159,17 +215,19 @@ export class OrderService {
       },
     });
 
-    // Update table status to OCCUPIED
-    await this.prisma.table.update({
-      where: { id: createOrderDto.tableId },
-      data: { status: 'OCCUPIED' },
-    });
+    // Update table status to OCCUPIED (only for dine-in orders)
+    if (createOrderDto.tableId) {
+      await this.prisma.table.update({
+        where: { id: createOrderDto.tableId },
+        data: { status: 'OCCUPIED' },
+      });
+    }
 
     // Deduct stock for ordered items (automatic stock management)
     try {
       await this.stockService.deductStockForOrder(
         order.id,
-        order.items.map(item => ({
+        (order as any).items.map((item: any) => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
@@ -181,7 +239,7 @@ export class OrderService {
     }
 
     // Notify about new order
-    this.notificationsGateway.notifyNewOrder(tenantId, table.branchId, order);
+    this.notificationsGateway.notifyNewOrder(tenantId, createOrderDto.branchId, order);
 
     return order;
   }
