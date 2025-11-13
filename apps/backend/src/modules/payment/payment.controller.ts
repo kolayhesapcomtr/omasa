@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
-import { CreatePaymentDto } from './dto/payment.dto';
+import { CreatePaymentDto, MergeTablesDto, SplitBillDto, SplitByItemsDto, TransferOrderDto } from './dto/payment.dto';
 import { GetUser, RequestUser } from '../auth/decorators/get-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -57,5 +57,45 @@ export class PaymentController {
   @ApiResponse({ status: 200, description: 'Payment retrieved successfully' })
   async getPayment(@Param('id') id: string, @GetUser() user: RequestUser) {
     return this.paymentService.getPayment(id, user.tenantId);
+  }
+
+  // ============================================
+  // BILL MERGE & SPLIT OPERATIONS
+  // ============================================
+
+  @Post('merge-tables')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
+  @ApiOperation({ summary: 'Merge multiple tables into one' })
+  @ApiResponse({ status: 200, description: 'Tables merged successfully' })
+  async mergeTables(@Body() dto: MergeTablesDto, @GetUser() user: RequestUser) {
+    return this.paymentService.mergeTables(dto, user.tenantId);
+  }
+
+  @Post('split-bill')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @ApiOperation({ summary: 'Split table bill into multiple parts' })
+  @ApiResponse({ status: 200, description: 'Bill split calculated successfully' })
+  async splitBill(@Body() dto: SplitBillDto, @GetUser() user: RequestUser) {
+    return this.paymentService.splitBill(dto, user.tenantId);
+  }
+
+  @Post('split-by-items')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
+  @ApiOperation({ summary: 'Split specific items to separate bill' })
+  @ApiResponse({ status: 200, description: 'Items split successfully' })
+  async splitByItems(@Body() dto: SplitByItemsDto, @GetUser() user: RequestUser) {
+    return this.paymentService.splitByItems(dto, user.tenantId, user.userId);
+  }
+
+  @Post('transfer-order')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
+  @ApiOperation({ summary: 'Transfer order to different table' })
+  @ApiResponse({ status: 200, description: 'Order transferred successfully' })
+  async transferOrder(@Body() dto: TransferOrderDto, @GetUser() user: RequestUser) {
+    return this.paymentService.transferOrder(dto, user.tenantId);
   }
 }

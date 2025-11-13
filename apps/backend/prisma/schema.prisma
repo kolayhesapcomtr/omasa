@@ -77,6 +77,7 @@ model User {
   // Relations
   orders        Order[]
   sessions      Session[]
+  payments      Payment[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -424,6 +425,19 @@ model Payment {
   refundReason    String?
   refundedAt      DateTime?
 
+  // Invoice relation
+  invoiceId       String?
+  invoice         Invoice?      @relation(fields: [invoiceId], references: [id])
+
+  // User who processed payment
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+
+  // Multi-tenant
+  tenantId        String
+
+  notes           String?
+
   paidAt          DateTime?
 
   createdAt       DateTime      @default(now())
@@ -433,6 +447,8 @@ model Payment {
   @@index([status])
   @@index([method])
   @@index([createdAt])
+  @@index([tenantId])
+  @@index([invoiceId])
 }
 
 // ============================================
@@ -448,16 +464,23 @@ model Invoice {
   customerTaxId   String?   // TC Kimlik or Vergi No
   customerAddress String?
 
-  amount          Decimal   @db.Decimal(10, 2)
-  taxAmount       Decimal   @db.Decimal(10, 2)
+  subtotal        Decimal   @db.Decimal(10, 2)
+  tax             Decimal   @db.Decimal(10, 2)
   total           Decimal   @db.Decimal(10, 2)
 
   pdfUrl          String?
+
+  // Relations
+  payments        Payment[]
+
+  // Multi-tenant
+  tenantId        String
 
   issuedAt        DateTime  @default(now())
   createdAt       DateTime  @default(now())
 
   @@index([invoiceNumber])
+  @@index([tenantId])
 }
 
 // ============================================
