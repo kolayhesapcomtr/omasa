@@ -1,24 +1,28 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: omasa-postgres
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: omasa
-      POSTGRES_PASSWORD: omasa123
-      POSTGRES_DB: omasa
     ports:
       - '5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-omasa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-omasa_password}
+      POSTGRES_DB: ${POSTGRES_DB:-omasa}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U omasa']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-omasa}']
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - omasa-network
 
+  # Redis (for caching and sessions)
   redis:
     image: redis:7-alpine
     container_name: omasa-redis
@@ -27,13 +31,96 @@ services:
       - '6379:6379'
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
+    networks:
+      - omasa-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: omasa-backend
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-omasa}:${POSTGRES_PASSWORD:-omasa_password}@postgres:5432/${POSTGRES_DB:-omasa}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change_this_secret_in_production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_this_refresh_secret_in_production}
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    networks:
+      - omasa-network
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
+
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    container_name: omasa-frontend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    networks:
+      - omasa-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: omasa-nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - omasa-network
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
+
+networks:
+  omasa-network:
+    driver: bridge

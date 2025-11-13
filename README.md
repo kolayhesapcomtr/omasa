@@ -128,15 +128,76 @@ omasa/
 
 ## 🎯 Geliştirme Roadmap
 
-Detaylı görev listesi için: [PROJECT_PLAN.md](PROJECT_PLAN.md)
+### ✅ Tamamlandı (v1.0)
+- [x] Proje yapısı ve altyapı kurulumu
+- [x] Database schema tasarımı (Prisma + PostgreSQL)
+- [x] Authentication & Authorization (JWT + Role-based)
+- [x] Multi-tenant mimari
+- [x] Şube yönetimi
+- [x] Menü yönetimi (Kategoriler, Ürünler, Varyantlar)
+- [x] Masa yönetimi ve QR kod sistemi
+- [x] Public QR Menü sayfası
+- [x] Sipariş yönetimi (Admin)
+- [x] Mutfak ekranı (Kitchen Display)
+- [x] Garson sipariş alma ekranı
+- [x] Kasa ve ödeme sistemi
+- [x] Kullanıcı ve personel yönetimi
+- [x] Raporlama ve analitik (Satış, Ürün, Garson performansı)
+- [x] Real-time bildirimler (Socket.io + WebSocket)
+- [x] Docker & Production deployment setup
 
-### ✅ Faz 1 - MVP (Şu An)
-- [x] Proje yapısı ve altyapı
-- [x] Database schema tasarımı
-- [ ] Authentication & Authorization
-- [ ] Menü yönetimi
-- [ ] Sipariş sistemi
-- [ ] Ödeme sistemi
+### 🚀 Gelecek Sürümler
+- [ ] Email bildirimleri (SMTP)
+- [ ] SMS bildirimleri (Twilio/Netgsm)
+- [ ] iyzico ödeme entegrasyonu
+- [ ] Rezervasyon sistemi
+- [ ] Müşteri CRM
+- [ ] Sadakat programı
+- [ ] Mobil uygulama (React Native)
+- [ ] Stok takip sistemi
+- [ ] Çoklu dil desteği (i18n)
+
+## 🚀 Deployment
+
+### Hızlı Deployment (Docker)
+
+```bash
+# 1. Projeyi clone'layın
+git clone <repo-url>
+cd omasa
+
+# 2. Environment değişkenlerini ayarlayın
+cp .env.example .env
+nano .env  # JWT_SECRET, DATABASE_URL vb. ayarlayın
+
+# 3. Deploy script'ini çalıştırın
+./scripts/deploy.sh production
+```
+
+### Manuel Deployment
+
+Detaylı deployment rehberi için: **[DEPLOYMENT.md](DEPLOYMENT.md)**
+
+- Docker Compose deployment
+- VPS/Cloud Server deployment
+- Kubernetes deployment
+- SSL sertifikası kurulumu
+- Database migration stratejileri
+- Backup ve restore prosedürleri
+- Monitoring ve maintenance
+
+### Hazır Scripts
+
+```bash
+# Deployment
+./scripts/deploy.sh production
+
+# Database backup
+./scripts/backup.sh
+
+# Database restore
+./scripts/restore.sh backups/backup_file.sql.gz
+```
 
 ---
 

@@ -1,0 +1,86 @@
+# Dependencies
+node_modules
+**/node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build outputs
+dist
+build
+.next
+out
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Tests
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+__tests__
+**/__tests__
+coverage
+.nyc_output
+
+# Development
+.husky
+.eslintcache
+.prettierignore
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp
+temp
+.tmp
+*.tmp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+prisma/*.db
+prisma/migrations/**/migration.sql
+
+# Backups
+*.backup
+*.bak
+*.sql.gz
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

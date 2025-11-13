@@ -3,6 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  output: 'standalone',
   images: {
     domains: ['localhost', 'omasa.app'],
     formats: ['image/avif', 'image/webp'],
