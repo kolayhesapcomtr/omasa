@@ -15,6 +15,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { StockModule } from './modules/stock/stock.module';
 import { PrinterModule } from './modules/printer/printer.module';
+import { WaiterCallModule } from './modules/waiter-call/waiter-call.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { PrinterModule } from './modules/printer/printer.module';
     NotificationsModule,
     StockModule,
     PrinterModule,
+    WaiterCallModule,
   ],
   controllers: [AppController],
   providers: [AppService],

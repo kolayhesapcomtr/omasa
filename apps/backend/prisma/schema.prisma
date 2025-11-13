@@ -78,6 +78,7 @@ model User {
   orders        Order[]
   sessions      Session[]
   payments      Payment[]
+  waiterCalls   WaiterCall[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -272,6 +273,7 @@ model Table {
   branch        Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   orders        Order[]
+  waiterCalls   WaiterCall[]
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -642,5 +644,56 @@ model PrintJob {
   @@index([status])
   @@index([type])
   @@index([orderId])
+  @@index([createdAt])
+}
+
+// ============================================
+// WAITER CALL SYSTEM
+// ============================================
+
+enum WaiterCallType {
+  GENERAL         // Genel yardım
+  BILL_REQUEST    // Hesap isteme
+  MENU_REQUEST    // Menü isteme
+  COMPLAINT       // Şikayet
+  ASSISTANCE      // Acil yardım
+}
+
+enum WaiterCallStatus {
+  PENDING         // Bekliyor
+  ACKNOWLEDGED    // Garson gördü
+  RESPONDED       // Garson masaya gitti
+  COMPLETED       // Tamamlandı
+  CANCELLED       // İptal edildi
+}
+
+model WaiterCall {
+  id              String            @id @default(cuid())
+
+  tableId         String
+  table           Table             @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  type            WaiterCallType    @default(GENERAL)
+  status          WaiterCallStatus  @default(PENDING)
+
+  // Optional message from customer
+  message         String?
+
+  // Who responded
+  respondedById   String?
+  respondedBy     User?             @relation(fields: [respondedById], references: [id])
+
+  // Timestamps
+  acknowledgedAt  DateTime?
+  respondedAt     DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([tableId])
+  @@index([status])
+  @@index([type])
   @@index([createdAt])
 }

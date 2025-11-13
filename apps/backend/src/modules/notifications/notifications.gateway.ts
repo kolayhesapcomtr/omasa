@@ -159,4 +159,35 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
     this.logger.log(`Table status change notification sent - Table: ${table.id}`);
   }
+
+  // Waiter call events
+  notifyWaiterCall(tenantId: string, branchId: string, waiterCall: any) {
+    // Notify all waiters in the branch
+    this.emitToRole(tenantId, 'WAITER', 'waiter-call:new', waiterCall);
+
+    // Also notify managers and owners
+    this.emitToRole(tenantId, 'MANAGER', 'waiter-call:new', waiterCall);
+    this.emitToRole(tenantId, 'OWNER', 'waiter-call:new', waiterCall);
+
+    // Emit to branch-specific room
+    this.emitToBranch(tenantId, branchId, 'waiter-call:new', waiterCall);
+
+    this.logger.log(
+      `Waiter call notification sent - Table: ${waiterCall.tableNumber}, Type: ${waiterCall.type}`,
+    );
+  }
+
+  notifyWaiterCallStatusChange(tenantId: string, branchId: string, update: any) {
+    // Notify all relevant roles
+    this.emitToRole(tenantId, 'WAITER', 'waiter-call:status-changed', update);
+    this.emitToRole(tenantId, 'MANAGER', 'waiter-call:status-changed', update);
+    this.emitToRole(tenantId, 'OWNER', 'waiter-call:status-changed', update);
+
+    // Emit to branch-specific room
+    this.emitToBranch(tenantId, branchId, 'waiter-call:status-changed', update);
+
+    this.logger.log(
+      `Waiter call status change notification sent - Call: ${update.id}, Status: ${update.status}`,
+    );
+  }
 }
