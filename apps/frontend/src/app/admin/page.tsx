@@ -62,7 +62,7 @@ export default function AdminPage() {
         </div>
 
         {/* Dashboard Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <a href="/admin/menu" className="rounded-lg bg-white p-6 shadow hover:shadow-lg transition">
             <div className="mb-2 text-3xl">📱</div>
             <h3 className="mb-1 text-lg font-semibold">QR Menü</h3>
@@ -105,6 +105,15 @@ export default function AdminPage() {
             <p className="text-sm text-orange-100">Sipariş hazırlama</p>
             <div className="mt-4 text-sm font-semibold text-white hover:text-orange-100">
               Mutfağa Git →
+            </div>
+          </a>
+
+          <a href="/admin/cashier" className="rounded-lg bg-purple-600 p-6 shadow hover:shadow-lg transition text-white">
+            <div className="mb-2 text-3xl">💰</div>
+            <h3 className="mb-1 text-lg font-semibold">Kasa</h3>
+            <p className="text-sm text-purple-100">Adisyon ve ödeme</p>
+            <div className="mt-4 text-sm font-semibold text-white hover:text-purple-100">
+              Kasaya Git →
             </div>
           </a>
 
