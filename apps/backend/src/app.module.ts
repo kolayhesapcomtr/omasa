@@ -10,6 +10,8 @@ import { MenuModule } from './modules/menu/menu.module';
 import { TableModule } from './modules/table/table.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { UserModule } from './modules/user/user.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { PaymentModule } from './modules/payment/payment.module';
     TableModule,
     OrderModule,
     PaymentModule,
+    UserModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -117,14 +117,23 @@ export default function AdminPage() {
             </div>
           </a>
 
-          <div className="rounded-lg bg-white p-6 shadow">
+          <a href="/admin/users" className="rounded-lg bg-indigo-600 p-6 shadow hover:shadow-lg transition text-white">
+            <div className="mb-2 text-3xl">👥</div>
+            <h3 className="mb-1 text-lg font-semibold">Kullanıcılar</h3>
+            <p className="text-sm text-indigo-100">Personel yönetimi</p>
+            <div className="mt-4 text-sm font-semibold text-white hover:text-indigo-100">
+              Kullanıcılara Git →
+            </div>
+          </a>
+
+          <a href="/admin/reports" className="rounded-lg bg-white p-6 shadow hover:shadow-lg transition">
             <div className="mb-2 text-3xl">📊</div>
             <h3 className="mb-1 text-lg font-semibold">Raporlar</h3>
             <p className="text-sm text-gray-600">Satış ve performans</p>
-            <button className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
+            <div className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700">
               Raporlara Git →
-            </button>
-          </div>
+            </div>
+          </a>
         </div>
 
         {/* Quick Stats */}
