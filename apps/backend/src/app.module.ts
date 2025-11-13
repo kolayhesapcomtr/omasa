@@ -14,6 +14,7 @@ import { UserModule } from './modules/user/user.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { StockModule } from './modules/stock/stock.module';
+import { PrinterModule } from './modules/printer/printer.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { StockModule } from './modules/stock/stock.module';
     ReportsModule,
     NotificationsModule,
     StockModule,
+    PrinterModule,
   ],
   controllers: [AppController],
   providers: [AppService],

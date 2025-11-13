@@ -140,6 +140,7 @@ model Branch {
   tables        Table[]
   menus         Menu[]
   orders        Order[]
+  printers      Printer[]
 
   // Settings
   openingTime   String?   // HH:mm format
@@ -542,5 +543,104 @@ model StockAlert {
   @@index([productId])
   @@index([isRead])
   @@index([isResolved])
+  @@index([createdAt])
+}
+
+// ============================================
+// PRINTER MANAGEMENT
+// ============================================
+
+enum PrinterType {
+  KITCHEN       // Mutfak yazıcı
+  BAR           // Bar yazıcı
+  RECEIPT       // Adisyon/Fiş yazıcı
+  BILL          // Hesap yazıcı
+}
+
+enum PrinterConnection {
+  NETWORK       // Network/IP printer
+  USB           // USB bağlantı
+  BLUETOOTH     // Bluetooth
+}
+
+model Printer {
+  id              String            @id @default(cuid())
+  name            String            // "Mutfak Yazıcı 1", "Bar Yazıcı"
+  type            PrinterType
+  connection      PrinterConnection
+
+  // Connection details
+  ipAddress       String?           // For network printers
+  port            Int?              @default(9100) // Default ESC/POS port
+  usbPath         String?           // For USB printers
+  macAddress      String?           // For Bluetooth
+
+  // Settings
+  paperWidth      Int               @default(80) // mm (58, 80)
+  isActive        Boolean           @default(true)
+  autoPrint       Boolean           @default(true) // Auto print on new order
+
+  // Department/Category filter (which products go to this printer)
+  categoryIds     String[]          // Empty = all categories
+
+  branchId        String
+  branch          Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  printJobs       PrintJob[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([branchId])
+  @@index([type])
+  @@index([isActive])
+}
+
+enum PrintJobStatus {
+  PENDING
+  PRINTING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PrintJobType {
+  ORDER           // Sipariş fişi
+  BILL            // Adisyon/Hesap
+  RECEIPT         // Fiş
+  KITCHEN_ORDER   // Mutfak siparişi
+}
+
+model PrintJob {
+  id              String          @id @default(cuid())
+
+  printerId       String
+  printer         Printer         @relation(fields: [printerId], references: [id], onDelete: Cascade)
+
+  type            PrintJobType
+  status          PrintJobStatus  @default(PENDING)
+
+  // Reference to order, payment, etc.
+  orderId         String?
+  paymentId       String?
+  invoiceId       String?
+
+  // Print content (ESC/POS commands as string or JSON)
+  content         String          @db.Text
+
+  // Retry management
+  retryCount      Int             @default(0)
+  maxRetries      Int             @default(3)
+  lastError       String?
+
+  printedAt       DateTime?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([printerId])
+  @@index([status])
+  @@index([type])
+  @@index([orderId])
   @@index([createdAt])
 }
